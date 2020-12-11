@@ -6,14 +6,14 @@ use Illuminate\Support\ServiceProvider;
 class CountryIOServiceProvider extends ServiceProvider {
 	public function boot()
 	{
-		/*$this->publishes([
+		$this->publishes([
 			__DIR__.'/../config/countryio.php' => config_path('countryio.php'),
-		]);
+		], 'countryio-config');
 	
-		$this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+		/*$this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 		$this->publishes([
 			__DIR__.'/../database/migrations/' => database_path('migrations')
-		], 'migrations');*/
+		], 'countryio-migrations');*/
 		
 		if ($this->app->runningInConsole()) {
 			$this->commands([

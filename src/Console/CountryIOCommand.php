@@ -58,6 +58,7 @@ class CountryIOCommand extends Command {
 	}
 	
 	protected function generateModel() {
+		//copy(__DIR__.'/../../stubs/country_model.stub', app_path('Models/Country.php'));
 		$path = app_path().DIRECTORY_SEPARATOR.'Models'.DIRECTORY_SEPARATOR.'Country.php';
 		if(!$this->files->exists($path)) {
 			$this->files->put($path, $this->files->get(__DIR__.'/../../stubs/country_model.stub'));
