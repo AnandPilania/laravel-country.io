@@ -1,0 +1,37 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class CreateCountriesTable extends Migration
+{
+    public function up()
+    {
+        Schema::create('countries', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('slug')->unique();
+            $table->string('code');
+            $table->string('iso2')->unique();
+            $table->string('iso3')->unique();
+            $table->string('capital');
+            $table->string('lang');
+            $table->json('coordinates')->nullable();
+            $table->json('currency');
+            $table->json('population')->nullable();
+            $table->json('neighbours')->nullable();
+            $table->json('geography')->nullable();
+            $table->text('history')->nullable();
+            $table->json('demographics')->nullable();
+            $table->json('transportation')->nullable();
+            $table->json('economy')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('countries');
+    }
+}
