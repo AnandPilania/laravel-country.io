@@ -5,7 +5,8 @@
     "authors": [
         {
             "name": "Anand Pilania",
-            "email": "pilaniaanand@gmail.com"
+            "email": "pilaniaanand@gmail.com",
+			"homepage": "https://kspedu.com"
         }
     ],
     "require": {
