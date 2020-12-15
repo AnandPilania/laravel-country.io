@@ -11,7 +11,8 @@ class CountryIOCommand extends Command {
 	protected $signature = 'kspedu:countryio
 							{--T|to=file : Fetch and Save to file|db.}
 							{--O|offline : Save for future use.}
-							{--clean : Clean after complete}';
+							{--clean : Clean after complete.}
+							{--silent : Work silently.';
 
     protected $description = 'Fetch Countries';
 	
@@ -91,6 +92,8 @@ class CountryIOCommand extends Command {
 			
 			$this->files->put($file, json_encode($this->response, true));
 		}
+		
+		$this->info('Country.io done');
 	}
 	
 	protected function getFlags($code) {
@@ -213,7 +216,9 @@ class CountryIOCommand extends Command {
 
         $response = [];
 
-        echo $country . ' done' . PHP_EOL;
+        	if(!$this->option('silent')) {
+			echo $country . ' done' . PHP_EOL;
+		}
 	}
 	
 	protected function convertToHtml($link) {
