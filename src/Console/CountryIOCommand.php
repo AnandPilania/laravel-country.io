@@ -12,7 +12,7 @@ class CountryIOCommand extends Command {
 							{--T|to=file : Fetch and Save to file|db.}
 							{--O|offline : Save for future use.}
 							{--clean : Clean after complete.}
-							{--silent : Work silently.';
+							{--silent : Work silently.}';
 
     protected $description = 'Fetch Countries';
 	
