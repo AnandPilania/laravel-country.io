@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class CountryIO extends Model
+{
+    protected $guarded = [];
+
+    protected $casts = [];
+
+    public function getTable() {
+        $this->table = config('countryio.table_name', 'countryio');
+        return parent::getTable();
+    }
+
+    public function getRouteKeyName()
+    {
+        return config('countryio.has_slug', null) ? 'slug' : 'id';
+    }
+}

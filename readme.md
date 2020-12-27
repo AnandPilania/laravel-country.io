@@ -1,5 +1,11 @@
 # kspedu/laravel-country.io
 
+### UPDATE
+  
+  - KEEP needed columns only,
+  - direct control via `config` file,
+
+
 `KSPEdu/Laravel-Country.io` - `artisan` based package that can fetch countries list with details aka:
 
   - Code
@@ -17,6 +23,18 @@ and more directly from [Country.io](http://country.io) and store it directly int
 
 ```sh
 $ composer require kspedu/laravel-country.io
+$ php artisan vendor:publish --provider="KSPEdu\CountryIO\CountryIOServiceProvider"
+```
+
+#### BEFORE USING
+Configure/adjust `countryio` config file according to your need
+
+```sh
+  - table_name          - table name for storing in DB,
+  - cols_type           - `plain|json` [`plain` aka `continent`, `population_total` AND `json` aka `geography.continent`, `population.total`],
+  - cols                - `cols_type` free columns,
+  - cols_plain|json     - `cols_type` based columns,
+  - file                - If not DB, than location of file (`--to=file|db` option of `kspedu:countryio` artisan command)
 ```
 
 #### How to use
@@ -25,12 +43,13 @@ First take a look of supported `options`
 $ php artisan help kspedu:countryio
 ```
 ````sh
---to : file OR db
+--to      : file OR db
 --offline : save fetched files to `storage/country` dir
---clean : clean everything after setup
+--clean   : clean everything after setup
+--silent  : silent work 
 ````
 
-**NOTE: Default location is `storage/app/countries.json`**
+**NOTE: Default location is `storage/app/countryio.json`**
 
 So, if you want to `file` list only (default):
 First publish the `config` file
@@ -53,7 +72,7 @@ php artisan kspedu:countryio --to=db
 ```
 will create [migration](https://github.com/AnandPilania/laravel-country.io/blob/master/stubs/countries_table.stub) `table` aka `countries` & `Country` model & update the database directly.
 
-**Why not using `migration publish`: beacuse if your application already have migration/model for `country` then ...**
+~~**Why not using `migration publish`: beacuse if your application already have migration/model for `country` then ...**~~
 
 
 ### Todos

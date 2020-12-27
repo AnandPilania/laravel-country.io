@@ -4,13 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Country extends Model
+class CountryIO extends Model
 {
-    protected $fillable = [
-        'name', 'slug', 'code', 'iso2', 'iso3', 'capital', 'lang',
-        'coordinates', 'currency', 'population', 'neighbours', 'geography',
-        'history', 'demographics', 'transportation', 'economy',
-    ];
+    protected $guarded = [];
 
     protected $casts = [
         'coordinates' => 'collection',
@@ -23,8 +19,13 @@ class Country extends Model
         'economy' => 'collection',
     ];
 
+    public function getTable() {
+        $this->table = config('countryio.table_name', 'countryio');
+        return parent::getTable();
+    }
+    
     public function getRouteKeyName()
     {
-        return 'slug';
+        return config('countryio.has_slug', null) ? 'slug' : 'id';
     }
 }

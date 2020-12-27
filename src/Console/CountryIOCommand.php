@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class CountryIOCommand extends Command {
+	use CountryIOTrait;
+
 	protected $signature = 'kspedu:countryio
 							{--T|to=file : Fetch and Save to file|db.}
 							{--O|offline : Save for future use.}
@@ -17,21 +19,26 @@ class CountryIOCommand extends Command {
     protected $description = 'Fetch Countries';
 	
 	protected $files;
+	protected $cols;
+	protected $cols_type;
+	protected $has_slug;
 	
 	protected $response;
-	
-	protected $url = 'http://country.io/';
 	
 	public function __construct(Filesystem $files) {
 		parent::__construct();
 		
 		$this->files = $files;
+
+		$this->cols_type = config('countryio.cols_type', 'json');
+		$this->cols = array_merge(config('countryio.cols', []), config('countryio.cols_'.$this->cols_type, []));
+		$this->has_slug = config('countryio.has_slug', null);
 	}
 	
     public function handle()
     {
 		if($this->isDB()) {
-			$this->generateMigration();
+			$this->callSilent('vendor:publish', ['--tag' => 'countryio-migration', '--force' => true]);
 			$this->generateModel();
 			$this->call('migrate');
 		}
@@ -46,37 +53,37 @@ class CountryIOCommand extends Command {
 	protected function generateMigration() {
 		$contain = false;
 		foreach(glob($this->laravel->databasePath().DIRECTORY_SEPARATOR.'migrations/*') as $file) {
-			if(Str::contains($file, '_create_countries_table')) {
+			if(Str::contains($file, '_create_countryio_table')) {
 				$contain = true;
 				break;
 			}
 		}
-		
+
 		if(!$contain) {
-			$path = $this->laravel->databasePath().DIRECTORY_SEPARATOR.'migrations'.DIRECTORY_SEPARATOR.date('Y_m_d_His').'_create_countries_table.php';
-			$this->files->put($path, $this->files->get(__DIR__.'/../../stubs/countries_table.stub'));
+			$path = $this->laravel->databasePath().DIRECTORY_SEPARATOR.'migrations'.DIRECTORY_SEPARATOR.date('Y_m_d_His').'_create_countryio_table.php';
+			$this->files->put($path, $this->files->get(__DIR__.'/../../stubs/countryio_table.stub'));
 		}
 	}
 	
 	protected function generateModel() {
 		//copy(__DIR__.'/../../stubs/country_model.stub', app_path('Models/Country.php'));
-		$path = app_path().DIRECTORY_SEPARATOR.'Models'.DIRECTORY_SEPARATOR.'Country.php';
+		$path = app_path().DIRECTORY_SEPARATOR.'Models'.DIRECTORY_SEPARATOR.'CountryIO.php';
 		if(!$this->files->exists($path)) {
-			$this->files->put($path, $this->files->get(__DIR__.'/../../stubs/country_model.stub'));
+			$this->files->put($path, $this->files->get(__DIR__.'/../../stubs/countryio_model_'.$this->cols_type.'.stub'));
 		}
 	}
 	
 	protected function getCountriesList() {
-		$link = $this->url . 'names.json';
+		$link = $this->url . $this->names;
 		
-		if(!Storage::exists('country/countries.json')) {
+		if(!Storage::exists('country/countryio.json')) {
 			$countries = file_get_contents($link);
 			
 			if($this->isOffline()) {
-				Storage::put('country/countries.json', $countries);
+				Storage::put('country/countryio.json', $countries);
 			}
 		} else {
-			$countries = Storage::get('country/countries.json');
+			$countries = Storage::get('country/countryio.json');
 		}
 		
 		foreach(json_decode($countries) as $code => $name) {
@@ -85,7 +92,7 @@ class CountryIOCommand extends Command {
 		}
 		
 		if(!$this->isDB()) {
-			$file = config('countryio.file', storage_path('app/countries.json'));
+			$file = config('countryio.file', storage_path('app/countryio.json'));
 			if($this->files->exists($file)) {
 				$this->files->delete($file);
 			}
@@ -98,7 +105,6 @@ class CountryIOCommand extends Command {
 	
 	protected function getFlags($code) {
 		if($this->isOffline() && !$this->option('no-flags')) {
-			$link = 'http://country.io/static/flags/';
 			$png = Str::lower($code).'.png';
 				
 			if(!$this->option('flag-24') && !$this->option('flag-48')) {
@@ -106,11 +112,11 @@ class CountryIOCommand extends Command {
 				$xFile = 'country/flag/48/' . $png;
 					
 				if(!Storage::exists($sFile)) {
-					Storage::put($sFile, file_get_contents($link.'24/'.$png));
+					Storage::put($sFile, file_get_contents($this->flags_path.'24/'.$png));
 				}
 					
 				if(!Storage::exists($xFile)) {
-					Storage::put($xFile, file_get_contents($link.'48/'.$png));
+					Storage::put($xFile, file_get_contents($this->flags_path.'48/'.$png));
 				}
 				
 			}
@@ -135,80 +141,66 @@ class CountryIOCommand extends Command {
 		$response = [];
 		
 		$xpath = $this->getXPath($this->isOffline() ? storage_path('app/country/' . $country . '.html') : $contents);
-        
-		$name = $xpath->query("//a[@class='cc-country-toplink']");
-        $response['name'] = $name[0]->textContent;
 		
-		$items = $xpath->query("//div[@class='col-sm-10 cc-home-block']/div/div/table/tr/td");
-        $response['code'] = $items[1]->textContent;
-        $response['iso2'] = $items[4]->textContent;
-        $response['iso3'] = $items[7]->textContent;
-        $response['capital'] = $items[10]->textContent;
-        $response['lang'] = $items[13]->textContent;
-        $currency = explode(' ', $items[16]->textContent);
-        if(count($currency) > 0) {
-            $response['currency'] = ['code' => str_ireplace('(', '', str_ireplace(')','', $currency[1])), 'name' => $currency[0]];
-        } else{
-            $response['currency'] = [$items[16]->textContent, null];
-        }
-        $response['population'] = ['total' => $items[22]->textContent, 'position' => $items[23]->textContent];
+		$name = $xpath->query($this->xPath_name);
 
-        $items = $xpath->query("//h2[@id='geography']/following-sibling::div/table/tr/td");
-        $response['geography'][Str::slug($items[0]->textContent, '_')] = $items[1]->textContent;
-        $response['geography'][Str::slug($items[3]->textContent, '_')] = $items[4]->textContent;
-        $response['geography'][Str::slug($items[6]->textContent, '_')] = ['total' => $items[7]->textContent, 'position' => $items[8]->textContent];
-        $response['geography'][Str::slug($items[9]->textContent, '_')] = $items[10]->textContent;
-        $response['geography'][Str::slug($items[12]->textContent, '_')] = $items[13]->textContent;
-        $response['geography'][Str::slug($items[15]->textContent, '_')] = $items[16]->textContent;
-        if (isset($items[18])) {
-            $response['geography'][Str::slug($items[18]->textContent, '_')] = $items[19]->textContent;
-        }
+		foreach($this->cols as $col => $enabled) {
+			if($enabled) {
+				if('name' === $col) {
+					$response['name'] = $name[0]->textContent;
+				}
 
-        $items = $xpath->query("//div[@class='cc-neighbour']/p/span/a");
-        foreach ($items as $index => $item) {
-            $response['neighbours'][] = $item->textContent;
-        }
+				if($this->has_slug) {
+					$response['slug'] = Str::slug($name[0]->textContent);
+				}
 
-        $items = $xpath->query("//h2[@id='history']/following-sibling::p");
-        $response['history'] = str_ireplace(' Read more on Wikipedia', '', rtrim($items[0]->textContent));
+				$items = $xpath->query($this->xPath_core);
+				if('code' === $col) {
+					$response['code'] = $items[1]->textContent;
+				}
+				if('iso2' === $col) {
+					$response['iso2'] = $items[4]->textContent;
+				}
+				if('iso3' === $col) {
+					$response['iso3'] = $items[7]->textContent;
+				}
+				if('capital' === $col) {
+					$response['capital'] = $items[10]->textContent;
+				}
+				if('lang' === $col) {
+					$response['lang'] = $items[13]->textContent;
+				}
 
-        $items = $xpath->query("//h2[@id='demographics']/following-sibling::div/table/tr/td");
-        $response['demographics'][Str::slug($items[0]->textContent, '_')] = ['total' => $items[1]->textContent, 'position' => $items[2]->textContent];
-        $response['demographics'][Str::slug($items[3]->textContent, '_')] = ['total' => $items[4]->textContent, 'position' => $items[5]->textContent];
-        $response['demographics'][Str::slug($items[6]->textContent, '_')] = ['total' => $items[7]->textContent, 'position' => $items[8]->textContent];
-        $response['demographics'][Str::slug($items[9]->textContent, '_')] = ['total' => $items[10]->textContent, 'position' => $items[11]->textContent];
-        $response['demographics'][Str::slug($items[12]->textContent, '_')] = ['total' => $items[13]->textContent, 'position' => $items[14]->textContent];
-        if (isset($items[15])) {
-            $response['demographics'][Str::slug($items[15]->textContent, '_')] = ['total' => $items[16]->textContent, 'position' => $items[17]->textContent];
-        }
+				if('neighbours' === $col) {
+					$response['neighbours'] = null;
+					$neighbours = $xpath->query($this->xPath_neighbours);
+					foreach ($neighbours as $index => $item) {
+						$response['neighbours'][] = Str::slug($item->textContent);
+					}
+				}
 
-        $items = $xpath->query("//h2[@id='transportation']/following-sibling::div/table/tr/td");
-        $response['transportation'][Str::slug($items[0]->textContent, '_')] = ['total' => $items[1]->textContent, 'position' => $items[2]->textContent];
-        $response['transportation'][Str::slug($items[3]->textContent, '_')] = ['total' => $items[4]->textContent, 'position' => $items[5]->textContent];
-        $response['transportation'][Str::slug($items[6]->textContent, '_')] = ['total' => $items[7]->textContent, 'position' => $items[8]->textContent];
-        $response['transportation'][Str::slug($items[9]->textContent, '_')] = ['total' => $items[10]->textContent, 'position' => $items[11]->textContent];
-        $response['transportation'][Str::slug($items[12]->textContent, '_')] = ['total' => $items[13]->textContent, 'position' => $items[14]->textContent];
-        if (isset($items[15])) {
-            $response['transportation'][Str::slug($items[15]->textContent, '_')] = ['total' => $items[16]->textContent, 'position' => $items[17]->textContent];
-        }
+				if('history' === $col) {
+					$history = $xpath->query($this->xPath_history);
+					$response['history'] = str_ireplace(' Read more on Wikipedia', '', rtrim($history[0]->textContent));
+				}
+			}
+		}
 
-        $items = $xpath->query("//h2[@id='economy']/following-sibling::div/table/tr/td");
-        $response['economy'][Str::slug($items[3]->textContent, '_')] = ['total' => $items[4]->textContent, 'position' => $items[5]->textContent];
-        $response['economy'][strtolower(str_ireplace('GDP per capita (', '', str_ireplace(')', '', $items[6]->textContent)))] = ['total' => $items[7]->textContent, 'position' => $items[8]->textContent];
-
-        $response['slug'] = Str::slug($name[0]->textContent);
-
-        if($name === 'Russia' || $name === 'Ukraine' || $name === 'Armenia' || $name === 'Kazakhstan' || $name === 'Philippines' || $name === 'Kyrgyzstan') {
-            $response['active'] = true;
-        }
-
-        $response['coordinates'] = ['latitude' => null, 'longitude' => null];
+		foreach($this->cols as $col => $enabled) {
+			if($enabled) {
+				$_response = array_merge($response, $this->{$this->cols_type}($xpath, $col));
+				$response = $_response;
+			}
+		}
 
         if($this->isDB()) {
-			if($model = \App\Models\Country::where('slug', Str::slug($name[0]->textContent))->first()) {
+			$field = $this->has_slug ? 'slug' : 'name';
+			$field_val = $this->has_slug ? Str::slug($name[0]->textContent) : $name[0]->textContent;
+
+			if($model = \App\Models\CountryIO::where($field, $field_val)->first()) {
 				$model->update($response);
 			} else {
-				\App\Models\Country::create($response);
+				\App\Models\CountryIO::create($response);
 			}
 		} else {
 			$this->response[] = $response;
@@ -216,9 +208,224 @@ class CountryIOCommand extends Command {
 
         $response = [];
 
-        	if(!$this->option('silent')) {
+        if(!$this->option('silent')) {
 			echo $country . ' done' . PHP_EOL;
 		}
+	}
+
+	private function json($xpath, $col) {
+		$response = [];
+
+		$items = $xpath->query($this->xPath_currency_population);
+		if('currency' === $col) {
+			$currency = explode(' ', $items[16]->textContent);
+			if(count($currency) > 0) {
+				$response['currency'] = ['code' => str_ireplace('(', '', str_ireplace(')','', $currency[1])), 'name' => $currency[0]];
+			} else{
+				$response['currency'] = [$items[16]->textContent, null];
+			}
+		}
+		if('population' === $col) {
+			$response['population'] = ['total' => $items[22]->textContent, 'position' => $items[23]->textContent];
+		}
+
+		if('geography' === $col) {
+			$geography = $xpath->query($this->xPath_geography);
+			$response['geography'][Str::slug($geography[0]->textContent, '_')] = $geography[1]->textContent;
+			$response['geography'][Str::slug($geography[3]->textContent, '_')] = $geography[4]->textContent;
+			$response['geography'][Str::slug($geography[6]->textContent, '_')] = ['total' => $geography[7]->textContent, 'position' => $geography[8]->textContent];
+			$response['geography'][Str::slug($geography[9]->textContent, '_')] = $geography[10]->textContent;
+			$response['geography'][Str::slug($geography[12]->textContent, '_')] = $geography[13]->textContent;
+			$response['geography'][Str::slug($geography[15]->textContent, '_')] = $geography[16]->textContent;
+			if (isset($geography[18])) {
+				$response['geography'][Str::slug($geography[18]->textContent, '_')] = $geography[19]->textContent;
+			}
+		}
+
+		if('demographics' === $col) {
+			$demographics = $xpath->query($this->xPath_demographics);
+			$response['demographics'][Str::slug($demographics[0]->textContent, '_')] = ['total' => $demographics[1]->textContent, 'position' => $demographics[2]->textContent];
+			$response['demographics'][Str::slug($demographics[3]->textContent, '_')] = ['total' => $demographics[4]->textContent, 'position' => $demographics[5]->textContent];
+			$response['demographics'][Str::slug($demographics[6]->textContent, '_')] = ['total' => $demographics[7]->textContent, 'position' => $demographics[8]->textContent];
+			$response['demographics'][Str::slug($demographics[9]->textContent, '_')] = ['total' => $demographics[10]->textContent, 'position' => $demographics[11]->textContent];
+			$response['demographics'][Str::slug($demographics[12]->textContent, '_')] = ['total' => $demographics[13]->textContent, 'position' => $demographics[14]->textContent];
+			if (isset($demographics[15])) {
+				$response['demographics'][Str::slug($demographics[15]->textContent, '_')] = ['total' => $demographics[16]->textContent, 'position' => $demographics[17]->textContent];
+			}
+		}
+		if('transportation' === $col) {
+			$transportation = $xpath->query($this->xPath_transportation);
+			$response['transportation'][Str::slug($transportation[0]->textContent, '_')] = ['total' => $transportation[1]->textContent, 'position' => $transportation[2]->textContent];
+			$response['transportation'][Str::slug($transportation[3]->textContent, '_')] = ['total' => $transportation[4]->textContent, 'position' => $transportation[5]->textContent];
+			$response['transportation'][Str::slug($transportation[6]->textContent, '_')] = ['total' => $transportation[7]->textContent, 'position' => $transportation[8]->textContent];
+			$response['transportation'][Str::slug($transportation[9]->textContent, '_')] = ['total' => $transportation[10]->textContent, 'position' => $transportation[11]->textContent];
+			$response['transportation'][Str::slug($transportation[12]->textContent, '_')] = ['total' => $transportation[13]->textContent, 'position' => $transportation[14]->textContent];
+			if (isset($transportation[15])) {
+				$response['transportation'][Str::slug($transportation[15]->textContent, '_')] = ['total' => $transportation[16]->textContent, 'position' => $transportation[17]->textContent];
+			}
+		}
+
+		if('economy' === $col) {
+			$economy = $xpath->query($this->xPath_economy);
+			$response['economy'][Str::slug($economy[3]->textContent, '_')] = ['total' => $economy[4]->textContent, 'position' => $economy[5]->textContent];
+			$response['economy'][strtolower(str_ireplace('GDP per capita (', '', str_ireplace(')', '', $economy[6]->textContent)))] = ['total' => $economy[7]->textContent, 'position' => $economy[8]->textContent];
+		}
+
+		if('coordinates' === $col) {
+			$response['coordinates'] = ['latitude' => null, 'longitude' => null];
+		}
+
+		return $response;
+	}
+
+	private function plain($xpath, $col) {
+		$response = [];
+
+		$items = $xpath->query($this->xPath_core);
+		$currency = explode(' ', $items[16]->textContent);
+		if(count($currency) > 0) {
+			$_cCode = str_ireplace('(', '', str_ireplace(')','', $currency[1]));
+			$_cName = $currency[0];
+		}
+
+		if('currency_code' === $col) {
+			$response['currency_code'] = $_cCode ?? $items[16]->textContent;
+		}
+		if('currency_name' === $col) {
+			$response['currency_name'] = $_cName ?? null;
+		}
+
+		if('population_total' === $col) {
+			$response['population_total'] = $items[22]->textContent;
+		}
+		if('population_position' === $col) {
+			$response['population_position'] = $items[23]->textContent;
+		}
+
+		$geography = $xpath->query($this->xPath_geography);
+		if('continent' === $col) {
+			$response['continent'] = $geography[1]->textContent;
+		}
+		if('location' === $col) {
+			$response['location'] = $geography[4]->textContent;
+		}
+		if('land_total' === $col) {
+			$response['land_total'] = $geography[7]->textContent;
+		}
+		if('land_position' === $col) {
+			$response['land_position'] = $geography[8]->textContent;
+		}
+		if('terrain' === $col) {
+			$response['terrain'] = $geography[10]->textContent;
+		}
+		if('climate' === $col) {
+			$response['climate'] = $geography[13]->textContent;
+		}
+		if('natural_hazards' === $col) {
+			$response['natural_hazards'] = $geography[16]->textContent;
+		}
+		if('geo_note' === $col) {
+			$response['geo_note'] = isset($geography[18]) ? $geography[19]->textContent : null;
+		}
+
+		$demographics = $xpath->query($this->xPath_demographics);
+		if('life_expectancy_total' === $col) {
+			$response['life_expectancy_total'] = $demographics[1]->textContent;
+		}
+		if('life_expectancy_position' === $col) {
+			$response['life_expectancy_position'] = $demographics[2]->textContent;
+		}
+		if('median_age_total' === $col) {
+			$response['median_age_total'] = $demographics[4]->textContent;
+		}
+		if('median_age_position' === $col) {
+			$response['median_age_position'] = $demographics[5]->textContent;
+		}
+		if('birth_rate_total' === $col) {
+			$response['birth_rate_total'] = $demographics[7]->textContent;
+		}
+		if('birth_rate_position' === $col) {
+			$response['birth_rate_position'] = $demographics[8]->textContent;
+		}
+		if('death_rate_total' === $col) {
+			$response['death_rate_total'] = $demographics[10]->textContent;
+		}
+		if('death_rate_position' === $col) {
+			$response['death_rate_position'] = $demographics[11]->textContent;
+		}
+		if('sex_ratio_total' === $col) {
+			$response['sex_ratio_total'] = $demographics[13]->textContent;
+		}
+		if('sex_ratio_position' === $col) {
+			$response['sex_ratio_position'] = $demographics[14]->textContent;
+		}
+		if('literacy_total' === $col) {
+			$response['literacy_total'] = isset($demographics[15]) ? $demographics[16]->textContent : null;
+		}
+		if('literacy_position' === $col) {
+			$response['literacy_position'] = isset($demographics[15]) ? $demographics[17]->textContent : null;
+		}
+
+		$transportation = $xpath->query($this->xPath_transportation);
+		if('roadways_total' === $col) {
+			$response['roadways_total'] = $transportation[1]->textContent;
+		}
+		if('roadways_position' === $col) {
+			$response['roadways_position'] = $transportation[2]->textContent;
+		}
+		if('railways_total' === $col) {
+			$response['railways_total'] = $transportation[4]->textContent;
+		}
+		if('railways_position' === $col) {
+			$response['railways_position'] = $transportation[5]->textContent;
+		}
+		if('airports_total' === $col) {
+			$response['airports_total'] = $transportation[7]->textContent;
+		}
+		if('airports_position' === $col) {
+			$response['airports_position'] = $transportation[8]->textContent;
+		}
+		if('waterways_total' === $col) {
+			$response['waterways_total'] = $transportation[10]->textContent;
+		}
+		if('waterways_position' === $col) {
+			$response['waterways_position'] = $transportation[11]->textContent;
+		}
+		if('heliports_total' === $col) {
+			$response['heliports_total'] = $transportation[13]->textContent;
+		}
+		if('heliports_position' === $col) {
+			$response['heliports_position'] = $transportation[14]->textContent;
+		}
+		if('airports_paved_total' === $col) {
+			$response['airports_paved_total'] = isset($transportation[15]) ? $transportation[16]->textContent : null;
+		}
+		if('airports_paved_position' === $col) {
+			$response['airports_paved_position'] = isset($transportation[15]) ? $transportation[17]->textContent : null;
+		}
+
+		$economy = $xpath->query($this->xPath_economy);
+		if('gdp_total' === $col) {
+			$response['gdp_total'] = $economy[4]->textContent;
+		}
+		if('gdp_position' === $col) {
+			$response['gdp_position'] = $economy[5]->textContent;
+		}
+		if('ppp_total' === $col) {
+			$response['ppp_total'] = $economy[7]->textContent;
+		}
+		if('ppp_position' === $col) {
+			$response['ppp_position'] = $economy[8]->textContent;
+		}
+
+		if('latitude' === $col) {
+			$response['latitude'] = null;
+		}
+		if('longitude' === $col) {
+			$response['longitude'] = null;
+		}
+
+		return $response;
 	}
 	
 	protected function convertToHtml($link) {

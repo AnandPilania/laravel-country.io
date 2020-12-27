@@ -1,0 +1,50 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class CreateCountryIOTable extends Migration
+{
+    public function up()
+    {
+        Schema::create(config('countryio.table_name', 'countryio'), function (Blueprint $table) {
+            $cols_type = config('countryio.cols_type', 'json');
+
+            $table->id();
+
+            if(config('countryio.has_slug', null)) {
+                $table->string('slug')->unique();
+            }
+
+            foreach(config('countryio.cols', []) as $col => $enabled) {
+                if($enabled) {
+                    if(in_array($col, ['iso2', 'iso3'])) {
+                        $table->string($col)->unique();
+                    } else if(in_array($col, ['history', 'neighbours'])) {
+                        $table->text($col)->nullable();
+                    } else {
+                        $table->string($col);
+                    }
+                }
+            }
+
+            foreach(config('countryio.cols_'.$cols_type, []) as $col => $enabled) {
+                if($enabled) {
+                    if('json') {
+                        $table->json($col)->nullable();
+                    } else if('plain') {
+                        $table->string($col)->nullable();
+                    }
+                }
+            }
+
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists(config('countryio.table_name', 'countryio'));
+    }
+}

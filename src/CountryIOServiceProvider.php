@@ -10,10 +10,10 @@ class CountryIOServiceProvider extends ServiceProvider {
 			__DIR__.'/../config/countryio.php' => config_path('countryio.php'),
 		], 'countryio-config');
 	
-		/*$this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+		/*$this->loadMigrationsFrom(__DIR__.'/../database/migrations');*/
 		$this->publishes([
-			__DIR__.'/../database/migrations/' => database_path('migrations')
-		], 'countryio-migrations');*/
+			__DIR__.'/../stubs/countryio_table.stub' => database_path('migrations'.DIRECTORY_SEPARATOR.date('Y_m_d_His').'_create_countryio_table.php')
+		], 'countryio-migration');
 		
 		if ($this->app->runningInConsole()) {
 			$this->commands([
