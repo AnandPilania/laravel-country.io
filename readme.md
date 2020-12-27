@@ -23,7 +23,8 @@ and more directly from [Country.io](http://country.io) and store it directly int
 
 ```sh
 $ composer require kspedu/laravel-country.io
-$ php artisan vendor:publish --provider="KSPEdu\CountryIO\CountryIOServiceProvider"
+$ php artisan vendor:publish --tag=countryio-config
+$ php artisan vendor:publish --tag=countryio-migration
 ```
 
 #### BEFORE USING
