@@ -81,6 +81,28 @@ will create [migration](https://github.com/AnandPilania/laravel-country.io/blob/
  - App use `file` based `table`
  - Flags
 
+
+#### Play with `artisan`:
+Add to `routes/console.php`:
+
+```sh
+Artisan::command('countries', function() {
+    $count = $this->ask('How many entries?');
+    foreach(\App\Models\CountryIO::take($count ?? 10)->get() as $c) {
+        $output = '';
+        foreach(array_merge(config('countryio.cols', []), config('countryio.cols_'.config('countryio.cols_type', 'plain'), [])) as $col => $enabled) {
+            if($enabled) {
+                $output .= $c->{$col}.', ';
+            }
+        }
+
+        $this->comment($output);
+    }
+})->purpose('Check CountryIO');
+```
+
+and `php artisan countries` :)
+
 License
 ----
 
