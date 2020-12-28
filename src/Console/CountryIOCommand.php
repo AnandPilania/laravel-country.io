@@ -10,6 +10,8 @@ use Illuminate\Support\Str;
 class CountryIOCommand extends Command {
 	use CountryIOTrait;
 
+	const DS = DIRECTORY_SEPARATOR;
+
 	protected $signature = 'kspedu:countryio
 							{--T|to=file : Fetch and Save to file|db.}
 							{--O|offline : Save for future use.}
@@ -38,21 +40,27 @@ class CountryIOCommand extends Command {
     public function handle()
     {
 		if($this->isDB()) {
-			$this->callSilent('vendor:publish', ['--tag' => 'countryio-migration', '--force' => true]);
-			$this->generateModel();
+			
+			if(!$this->generateModel()) {
+				exit();
+			}
+
+			$this->generateMigration();
 			$this->call('migrate');
 		}
 		
 		$this->getCountriesList();
 		
-		if($this->option('clean') && is_dir(storage_path().DIRECTORY_SEPARATOR.'country')) {
-			Storage::deleteDirectory('country');
+		if($this->option('clean') && is_dir($path = storage_path('app' . self::DS . 'country'))) {
+			Storage::deleteDirectory($path, true);
+			sleep(1);
+			Storage::deleteDirectory($path);
 		}
     }
 	
 	protected function generateMigration() {
 		$contain = false;
-		foreach(glob($this->laravel->databasePath().DIRECTORY_SEPARATOR.'migrations/*') as $file) {
+		foreach(glob($this->laravel->databasePath() . self::DS .'migrations/*') as $file) {
 			if(Str::contains($file, '_create_countryio_table')) {
 				$contain = true;
 				break;
@@ -60,30 +68,32 @@ class CountryIOCommand extends Command {
 		}
 
 		if(!$contain) {
-			$path = $this->laravel->databasePath().DIRECTORY_SEPARATOR.'migrations'.DIRECTORY_SEPARATOR.date('Y_m_d_His').'_create_countryio_table.php';
-			$this->files->put($path, $this->files->get(__DIR__.'/../../stubs/countryio_table.stub'));
+			$this->callSilent('vendor:publish', ['--tag' => 'countryio-migration', '--force' => true]);
 		}
 	}
 	
 	protected function generateModel() {
-		//copy(__DIR__.'/../../stubs/country_model.stub', app_path('Models/Country.php'));
-		$path = app_path().DIRECTORY_SEPARATOR.'Models'.DIRECTORY_SEPARATOR.'CountryIO.php';
+		$modelPath = app_path('Models' . self::DS .'CountryIO.php');
+		
 		if(!$this->files->exists($path)) {
-			$this->files->put($path, $this->files->get(__DIR__.'/../../stubs/countryio_model_'.$this->cols_type.'.stub'));
+			$this->files->put(__DIR__.'/../../stubs/countryio_model_'.$this->cols_type.'.stub', $modelPath);
+			return true;
 		}
+
+		return $this->confirm('CountryIO models already exists! Continue anyway?', false);
 	}
 	
 	protected function getCountriesList() {
 		$link = $this->url . $this->names;
 		
-		if(!Storage::exists('country/countryio.json')) {
+		if(!Storage::exists('country' . self::DS .'countryio.json')) {
 			$countries = file_get_contents($link);
 			
 			if($this->isOffline()) {
-				Storage::put('country/countryio.json', $countries);
+				Storage::put('country' . self::DS .'countryio.json', $countries);
 			}
 		} else {
-			$countries = Storage::get('country/countryio.json');
+			$countries = Storage::get('country' . self::DS .'countryio.json');
 		}
 		
 		foreach(json_decode($countries) as $code => $name) {
@@ -92,7 +102,7 @@ class CountryIOCommand extends Command {
 		}
 		
 		if(!$this->isDB()) {
-			$file = config('countryio.file', storage_path('app/countryio.json'));
+			$file = config('countryio.file', storage_path('app' . self::DS .'countryio.json'));
 			if($this->files->exists($file)) {
 				$this->files->delete($file);
 			}
@@ -128,19 +138,19 @@ class CountryIOCommand extends Command {
 		$link = $this->url . "{$country}/";
 		$_name = $this->convertToHtml($link);
 		
-		if(!Storage::exists('country/'.$_name)) {
+		if(!Storage::exists('country' . self::DS .$_name)) {
             $contents = file_get_contents($link);
 			
 			if($this->isOffline()) {
-				Storage::put('country/'.$_name, $contents);
+				Storage::put('country' . self::DS .$_name, $contents);
 			}
         } else {
-			$contents = Storage::get('country/'.$_name);
+			$contents = Storage::get('country' . self::DS .$_name);
 		}
 		
 		$response = [];
 		
-		$xpath = $this->getXPath($this->isOffline() ? storage_path('app/country/' . $country . '.html') : $contents);
+		$xpath = $this->getXPath($this->isOffline() ? storage_path('app' . self::DS .'country' . self::DS . $country . '.html') : $contents);
 		
 		$name = $xpath->query($this->xPath_name);
 
