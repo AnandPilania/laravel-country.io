@@ -8,7 +8,9 @@ class CountryIO extends Model
 {
     protected $guarded = [];
 
-    protected $casts = [];
+    protected $casts = [
+        'neighbours' => 'collection'
+    ];
 
     public function getTable() {
         $this->table = config('countryio.table_name', 'countryio');
