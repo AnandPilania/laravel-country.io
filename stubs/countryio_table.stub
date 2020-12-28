@@ -21,8 +21,10 @@ class CreateCountryIOTable extends Migration
                 if($enabled) {
                     if(in_array($col, ['iso2', 'iso3'])) {
                         $table->string($col)->unique();
-                    } else if(in_array($col, ['history', 'neighbours'])) {
+                    } else if($col === 'history') {
                         $table->text($col)->nullable();
+                    } else if($col === 'neighbours'){
+                        $table->json($col)->nullable();
                     } else {
                         $table->string($col);
                     }
