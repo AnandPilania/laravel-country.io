@@ -15,6 +15,7 @@ class CountryIOCommand extends Command {
 	protected $signature = 'kspedu:countryio
 							{--T|to=file : Fetch and Save to file|db.}
 							{--O|offline : Save for future use.}
+							{--fresh : Fresh install.}
 							{--clean : Clean after complete.}
 							{--silent : Work silently.}';
 
@@ -75,8 +76,8 @@ class CountryIOCommand extends Command {
 	protected function generateModel() {
 		$modelPath = app_path('Models' . self::DS .'CountryIO.php');
 		
-		if(!$this->files->exists($path)) {
-			$this->files->put(__DIR__.'/../../stubs/countryio_model_'.$this->cols_type.'.stub', $modelPath);
+		if(!$this->files->exists($modelPath)) {
+			$this->files->put($modelPath, $this->files->get(__DIR__.'/../../stubs/countryio_model_'.$this->cols_type.'.stub'));
 			return true;
 		}
 
@@ -139,12 +140,12 @@ class CountryIOCommand extends Command {
 		$_name = $this->convertToHtml($link);
 		
 		if(!Storage::exists('country' . self::DS .$_name)) {
-            $contents = file_get_contents($link);
+            		$contents = file_get_contents($link);
 			
 			if($this->isOffline()) {
 				Storage::put('country' . self::DS .$_name, $contents);
 			}
-        } else {
+        	} else {
 			$contents = Storage::get('country' . self::DS .$_name);
 		}
 		
@@ -203,7 +204,13 @@ class CountryIOCommand extends Command {
 			}
 		}
 
-        if($this->isDB()) {
+        	if($this->isDB()) {
+			if($this->option('fresh')) {
+				\Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+				\App\Models\CountryIO::truncate();
+				\Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+			}
+			
 			$field = $this->has_slug ? 'slug' : 'name';
 			$field_val = $this->has_slug ? Str::slug($name[0]->textContent) : $name[0]->textContent;
 
@@ -216,9 +223,9 @@ class CountryIOCommand extends Command {
 			$this->response[] = $response;
 		}
 
-        $response = [];
+        	$response = [];
 
-        if(!$this->option('silent')) {
+        	if(!$this->option('silent')) {
 			echo $country . ' done' . PHP_EOL;
 		}
 	}
@@ -444,9 +451,9 @@ class CountryIOCommand extends Command {
 	
 	protected function getXPath($fileOrContents) {
 		$dom = new \DOMDocument;
-        $dom->preserveWhiteSpace = false;
-        $dom->strictErrorChecking = false;
-        $dom->recover = true;
+        	$dom->preserveWhiteSpace = false;
+        	$dom->strictErrorChecking = false;
+        	$dom->recover = true;
 		
 		if($this->isOffline()) {
 			@$dom->loadHTMLFile($fileOrContents);
