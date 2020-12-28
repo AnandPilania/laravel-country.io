@@ -47,6 +47,7 @@ $ php artisan help kspedu:countryio
 --to      : file OR db
 --offline : save fetched files to `storage/country` dir
 --clean   : clean everything after setup
+--fresh   : Fresh install (for `db` use only, truncates)
 --silent  : silent work 
 ````
 
