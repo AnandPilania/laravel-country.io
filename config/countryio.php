@@ -2,6 +2,8 @@
 
 return [
 	'table_name' => 'countryio',
+
+	'model' => null,
 	
 	'cols_type' => 'plain',
 

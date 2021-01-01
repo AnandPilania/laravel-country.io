@@ -1,7 +1,11 @@
 <?php
+
 namespace KSPEdu\CountryIO\Console;
 
-trait CountryIOTrait {
+trait CountryIOTrait
+{
+    protected $class = \App\Models\CountryIO::class;
+
     protected $url = 'http://country.io/';
     protected $names = 'names.json';
 

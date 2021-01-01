@@ -12,7 +12,8 @@ class CountryIO extends Model
         'neighbours' => 'collection'
     ];
 
-    public function getTable() {
+    public function getTable()
+    {
         $this->table = config('countryio.table_name', 'countryio');
         return parent::getTable();
     }

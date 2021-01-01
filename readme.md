@@ -1,9 +1,13 @@
 # kspedu/laravel-country.io
 
-### UPDATE
-  
-  - KEEP needed columns only,
-  - direct control via `config` file,
+### UPDATE (v2.0.4)
+  - Your own `migration` name,
+  - Set model from config,
+  - Performance improvement.
+
+  - v2.0.3
+    - KEEP needed columns only,
+    - direct control via `config` file.
 
 
 `KSPEdu/Laravel-Country.io` - `artisan` based package that can fetch countries list with details aka:
@@ -23,15 +27,29 @@ and more directly from [Country.io](http://country.io) and store it directly int
 
 ```sh
 $ composer require kspedu/laravel-country.io
+```
+
+
+#### FIRST STEP
+
+```sh
 $ php artisan vendor:publish --tag=countryio-config
+```
+and configure `config` according to your need.
+
+
+#### OPTIONAL STEP
+```sh
 $ php artisan vendor:publish --tag=countryio-migration
 ```
+
 
 #### BEFORE USING
 Configure/adjust `countryio` config file according to your need
 
 ```sh
   - table_name          - table name for storing in DB,
+  - model               - Define your own `Model` class [\App\Models\Country::class],
   - cols_type           - `plain|json` [`plain` aka `continent`, `population_total` AND `json` aka `geography.continent`, `population.total`],
   - cols                - `cols_type` free columns,
   - cols_plain|json     - `cols_type` based columns,
@@ -72,7 +90,7 @@ php artisan kspedu:countryio
 ```sh
 php artisan kspedu:countryio --to=db
 ```
-will create [migration](https://github.com/AnandPilania/laravel-country.io/blob/master/stubs/countries_table.stub) `table` aka `countries` & `Country` model & update the database directly.
+will create `migration table` (based on `countryio` config) & `CountryIO` model (DEFAULT, if not set in config file) & update the database directly.
 
 ~~**Why not using `migration publish`: beacuse if your application already have migration/model for `country` then ...**~~
 
@@ -87,13 +105,19 @@ will create [migration](https://github.com/AnandPilania/laravel-country.io/blob/
 Add to `routes/console.php`:
 
 ```sh
-Artisan::command('countries', function() {
+Artisan::command('countries', function () {
     $count = $this->ask('How many entries?');
-    foreach(\App\Models\CountryIO::take($count ?? 10)->get() as $c) {
+    $model = config('countryio.model', \App\Models\CountryIO::class);
+
+    if(!class_exists($model)) {
+        $this->error($model . ' not exists!');
+    }
+
+    foreach ((new $model)->take($count ?? 10)->get() as $c) {
         $output = '';
-        foreach(array_merge(config('countryio.cols', []), config('countryio.cols_'.config('countryio.cols_type', 'plain'), [])) as $col => $enabled) {
-            if($enabled) {
-                $output .= $c->{$col}.', ';
+        foreach (array_merge(config('countryio.cols', []), config('countryio.cols_' . config('countryio.cols_type', 'plain'), [])) as $col => $enabled) {
+            if ($enabled) {
+                $output .= $c->{$col} . ', ';
             }
         }
 

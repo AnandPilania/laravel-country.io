@@ -13,17 +13,17 @@ class CreateCountryIOTable extends Migration
 
             $table->id();
 
-            if(config('countryio.has_slug', null)) {
+            if (config('countryio.has_slug', null)) {
                 $table->string('slug')->unique();
             }
 
-            foreach(config('countryio.cols', []) as $col => $enabled) {
-                if($enabled) {
-                    if(in_array($col, ['iso2', 'iso3'])) {
+            foreach (config('countryio.cols', []) as $col => $enabled) {
+                if ($enabled) {
+                    if (in_array($col, ['iso2', 'iso3'])) {
                         $table->string($col)->unique();
-                    } else if($col === 'history') {
+                    } elseif ($col === 'history') {
                         $table->text($col)->nullable();
-                    } else if($col === 'neighbours'){
+                    } elseif ($col === 'neighbours') {
                         $table->json($col)->nullable();
                     } else {
                         $table->string($col);
@@ -31,11 +31,11 @@ class CreateCountryIOTable extends Migration
                 }
             }
 
-            foreach(config('countryio.cols_'.$cols_type, []) as $col => $enabled) {
-                if($enabled) {
-                    if('json') {
+            foreach (config('countryio.cols_' . $cols_type, []) as $col => $enabled) {
+                if ($enabled) {
+                    if ('json') {
                         $table->json($col)->nullable();
-                    } else if('plain') {
+                    } elseif ('plain') {
                         $table->string($col)->nullable();
                     }
                 }
