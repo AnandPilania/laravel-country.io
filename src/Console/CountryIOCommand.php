@@ -62,11 +62,11 @@ class CountryIOCommand extends Command
             $this->call('migrate');
 
             if (!$this->model) {
-                return throw new \Exception('CountryIO: Set MODEL in countryio.model config OR publish default model!');
+                throw new \Exception('CountryIO: Set MODEL in countryio.model config OR publish default model!');
             }
 
             if (!$this->model instanceof \Illuminate\Database\Eloquent\Model) {
-                return throw new \Exception('CountryIO: ' . $this->model . ' sould be instance of Eloquent Model!');
+                throw new \Exception('CountryIO: ' . $this->model . ' sould be instance of Eloquent Model!');
             }
 
             if ($this->option('fresh')) {
