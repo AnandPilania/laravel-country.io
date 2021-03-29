@@ -8,6 +8,8 @@ return [
 	'cols_type' => 'plain',
 
 	'has_slug' => true,
+    'has_active' => true,
+    'has_priority' => true,
 
 	'cols' => [
 		'name' => true,

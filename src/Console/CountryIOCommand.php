@@ -85,37 +85,6 @@ class CountryIOCommand extends Command
         }
     }
 
-    protected function generateMigration()
-    {
-        $contain = false;
-        foreach (glob($this->laravel->databasePath() . self::DS . 'migrations/*') as $file) {
-            if (Str::contains($file, '_create_'.$this->table.'_table')) {
-                $contain = true;
-                break;
-            }
-        }
-
-        if (!$contain) {
-            $this->callSilent('vendor:publish', ['--tag' => 'countryio-migration', '--force' => true]);
-        }
-    }
-
-    protected function generateModel()
-    {
-        if ($this->model) {
-            return true;
-        }
-
-        $modelPath = app_path('Models' . self::DS . 'CountryIO.php');
-
-        if (!$this->files->exists($modelPath)) {
-            $this->files->put($modelPath, $this->files->get(__DIR__ . '/../../stubs/countryio_model_' . $this->cols_type . '.stub'));
-            return true;
-        }
-
-        return $this->confirm('CountryIO models already exists! Continue anyway?', false);
-    }
-
     protected function getCountriesList()
     {
         $link = $this->url . $this->names;
@@ -131,7 +100,6 @@ class CountryIOCommand extends Command
         }
 
         foreach (json_decode($countries) as $code => $name) {
-            //$this->getFlags($code);
             $this->getCountry($name);
         }
 
@@ -145,26 +113,15 @@ class CountryIOCommand extends Command
         }
 
         $this->info('Country.io done');
-    }
+		
+		if (config('countryio.has_active') && !$this->files->exists($scopePath = app_path('Traits' . self::DS . 'ScopeActive.php'))) {
+            $this->files->put($scopePath, $this->files->get(__DIR__ . '/../../stubs/scope_active.stub'));
+            $this->info('Ensure \'ScopeActive\' is added to ' . $this->model);
+        }
 
-    protected function getFlags($code)
-    {
-        if ($this->isOffline() && !$this->option('no-flags')) {
-            $png = Str::lower($code) . '.png';
-
-            if (!$this->option('flag-24') && !$this->option('flag-48')) {
-                $sFile = 'country/flag/24/' . $png;
-                $xFile = 'country/flag/48/' . $png;
-
-                if (!Storage::exists($sFile)) {
-                    Storage::put($sFile, file_get_contents($this->flags_path . '24/' . $png));
-                }
-
-                if (!Storage::exists($xFile)) {
-                    Storage::put($xFile, file_get_contents($this->flags_path . '48/' . $png));
-                }
-
-            }
+        if (config('countryio.has_priority') && !$this->files->exists($scopePath = app_path('Traits' . self::DS . 'ScopePriority.php'))) {
+            $this->files->put($scopePath, $this->files->get(__DIR__ . '/../../stubs/scope_priority.stub.stub'));
+            $this->info('Ensure \'ScopePriority\' is added to ' . $this->model);
         }
     }
 

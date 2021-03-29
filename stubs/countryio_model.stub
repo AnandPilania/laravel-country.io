@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class CountryIO extends Model
+{
+    protected $guarded = [];
+
+    protected $casts = [];
+
+	public function getCasts()
+    {
+        return $this->casts = array_merge(['neighbours' => 'collection'],
+            (config('countryio.cols_type', 'json')
+                ? [
+                    'coordinates' => 'collection',
+                    'currency' => 'collection',
+                    'population' => 'collection',
+                    'geography' => 'collection',
+                    'demographics' => 'collection',
+                    'transportation' => 'collection',
+                    'economy' => 'collection'
+                ] : []
+            ));
+    }
+	
+    public function getTable()
+    {
+        return config('countryio.table_name', 'countryio');
+    }
+
+    public function getRouteKeyName()
+    {
+        return config('countryio.has_slug', null) ? 'slug' : 'id';
+    }
+}

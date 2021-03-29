@@ -1,0 +1,9 @@
+<?php
+namespace App\Traits;
+
+trait ScopePriority
+{
+    public function scopePriority($query, $term = 'asc') {
+        return $query->orderBy('priority', $term);
+    }
+}

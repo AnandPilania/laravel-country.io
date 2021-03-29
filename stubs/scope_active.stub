@@ -1,0 +1,9 @@
+<?php
+namespace App\Traits;
+
+trait ScopeActive
+{
+    public function scopeActive($query, $value = true) {
+        return $query->where('is_active', $value);
+    }
+}

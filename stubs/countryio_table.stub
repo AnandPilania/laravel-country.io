@@ -40,7 +40,15 @@ class CreateCountryIOTable extends Migration
                     }
                 }
             }
+			
+			if (config('countryio.has_priority', false)) {
+                $table->integer('priority')->default(0);
+            }
 
+            if (config('countryio.has_active', false)) {
+                $table->boolean('is_active')->default(false);
+            }
+			
             $table->timestamps();
         });
     }

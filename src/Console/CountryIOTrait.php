@@ -2,6 +2,8 @@
 
 namespace KSPEdu\CountryIO\Console;
 
+use Illuminate\Support\Str;
+
 trait CountryIOTrait
 {
     protected $class = \App\Models\CountryIO::class;
@@ -21,4 +23,35 @@ trait CountryIOTrait
     protected $xPath_transportation = "//h2[@id='transportation']/following-sibling::div/table/tr/td";
     protected $xPath_economy = "//h2[@id='economy']/following-sibling::div/table/tr/td";
     protected $xPath_coordinates = null;
+
+    protected function generateMigration()
+    {
+        $contain = false;
+        foreach (glob($this->laravel->databasePath() . self::DS . 'migrations/*') as $file) {
+            if (Str::contains($file, '_create_' . $this->table . '_table')) {
+                $contain = true;
+                break;
+            }
+        }
+
+        if (!$contain) {
+            $this->callSilent('vendor:publish', ['--tag' => 'countryio-migration', '--force' => true]);
+        }
+    }
+
+    protected function generateModel()
+    {
+        if ($this->model) {
+            return true;
+        }
+
+        $modelPath = app_path('Models' . self::DS . 'CountryIO.php');
+
+        if (!$this->files->exists($modelPath)) {
+            $this->files->put($modelPath, $this->files->get(__DIR__ . '/../../stubs/countryio_model.stub'));
+            return true;
+        }
+
+        return $this->confirm('CountryIO models already exists! Continue anyway?', false);
+    }
 }
