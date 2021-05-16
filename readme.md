@@ -1,5 +1,7 @@
 # kspedu/laravel-country.io
 
+[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FAnandPilania%2Flaravel-country.io&count_bg=%23FF3863&title_bg=%232C3E50&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
+
 ### UPDATE (v2.0.4)
   - Your own `migration` name,
   - Set model from config,
