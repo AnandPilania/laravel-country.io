@@ -1,4 +1,4 @@
-# kspedu/laravel-country.io
+# anandpilania/laravel-country.io
 
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FAnandPilania%2Flaravel-country.io&count_bg=%23FF3863&title_bg=%232C3E50&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 
@@ -12,7 +12,7 @@
     - direct control via `config` file.
 
 
-`KSPEdu/Laravel-Country.io` - `artisan` based package that can fetch countries list with details aka:
+`Laravel-Country.io` - `artisan` based package that can fetch countries list with details aka:
 
   - Code
   - Continent
@@ -22,13 +22,13 @@
   - ISO2/3
   - Language
   - Population
-  
+
 and more directly from [Country.io](http://country.io) and store it directly into `file|db`.
 
 ### Installation
 
 ```sh
-$ composer require kspedu/laravel-country.io
+$ composer require anandpilania/laravel-country.io
 ```
 
 
@@ -55,20 +55,20 @@ Configure/adjust `countryio` config file according to your need
   - cols_type           - `plain|json` [`plain` aka `continent`, `population_total` AND `json` aka `geography.continent`, `population.total`],
   - cols                - `cols_type` free columns,
   - cols_plain|json     - `cols_type` based columns,
-  - file                - If not DB, than location of file (`--to=file|db` option of `kspedu:countryio` artisan command)
+  - file                - If not DB, than location of file (`--to=file|db` option of `countryio` artisan command)
 ```
 
 #### How to use
 First take a look of supported `options`
 ```sh
-$ php artisan help kspedu:countryio
+$ php artisan help countryio
 ```
 ````sh
 --to      : file OR db
 --offline : save fetched files to `storage/country` dir
 --clean   : clean everything after setup
 --fresh   : Fresh install (for `db` use only, truncates)
---silent  : silent work 
+--silent  : silent work
 ````
 
 **NOTE: Default location is `storage/app/countryio.json`**
@@ -84,13 +84,13 @@ then, change the location: `config/countryio.php`
 ```
 and fire:
 ```sh
-php artisan kspedu:countryio
+php artisan countryio
 ```
 
 ##### FOR `db`:
-`kspedu/laravel-country.io` contains Country `migration` & `model`
+`anandpilania/laravel-country.io` contains Country `migration` & `model`
 ```sh
-php artisan kspedu:countryio --to=db
+php artisan countryio --to=db
 ```
 will create `migration table` (based on `countryio` config) & `CountryIO` model (DEFAULT, if not set in config file) & update the database directly.
 

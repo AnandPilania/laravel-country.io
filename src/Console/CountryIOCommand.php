@@ -1,6 +1,6 @@
 <?php
 
-namespace KSPEdu\CountryIO\Console;
+namespace CountryIO\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
@@ -14,7 +14,7 @@ class CountryIOCommand extends Command
 
     const DS = DIRECTORY_SEPARATOR;
 
-    protected $signature = 'kspedu:countryio
+    protected $signature = 'countryio
 							{--T|to=file : Fetch and Save to file|db.}
 							{--O|offline : Save for future use.}
 							{--fresh : Fresh install.}
@@ -113,7 +113,7 @@ class CountryIOCommand extends Command
         }
 
         $this->info('Country.io done');
-		
+
 		if (config('countryio.has_active') && !$this->files->exists($scopePath = app_path('Traits' . self::DS . 'ScopeActive.php'))) {
             $this->files->put($scopePath, $this->files->get(__DIR__ . '/../../stubs/scope_active.stub'));
             $this->info('Ensure \'ScopeActive\' is added to ' . $this->model);

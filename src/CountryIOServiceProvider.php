@@ -1,6 +1,6 @@
 <?php
 
-namespace KSPEdu\CountryIO;
+namespace CountryIO;
 
 use Illuminate\Support\ServiceProvider;
 

@@ -1,5 +1,5 @@
 {
-    "name": "kspedu/laravel-country.io",
+    "name": "anandpilania/laravel-country.io",
     "description": "Country.io database for laravel",
     "license": "MIT",
     "authors": [
@@ -10,18 +10,18 @@
         }
     ],
     "require": {
-		"illuminate/console": "^8.0",
-		"illuminate/support": "^8.0"
+		"illuminate/console": "^8.0 || ^9.0 || ^10.0",
+		"illuminate/support": "^8.0 || ^9.0 || ^10.0"
 	},
 	"autoload": {
 		"psr-4": {
-			"KSPEdu\\CountryIO\\": "src/"
+			"CountryIO\\": "src/"
 		}
 	},
 	"extra": {
         "laravel": {
 			"providers": [
-                "KSPEdu\\CountryIO\\CountryIOServiceProvider"
+                "CountryIO\\CountryIOServiceProvider"
             ]
         }
     },

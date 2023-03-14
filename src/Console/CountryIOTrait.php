@@ -1,6 +1,6 @@
 <?php
 
-namespace KSPEdu\CountryIO\Console;
+namespace CountryIO\Console;
 
 use Illuminate\Support\Str;
 
